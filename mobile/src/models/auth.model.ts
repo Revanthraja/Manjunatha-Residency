@@ -16,6 +16,20 @@ export async function verifyEmailOtp(email: string, token: string) {
   return data.session;
 }
 
+/** Signs in with a password, for a returning user who has set one. */
+export async function signInWithPassword(email: string, password: string) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data.session;
+}
+
+/** Sets (or replaces) a password on the current signed-in user, so they can
+ * skip the emailed-code step next time. Requires an active session. */
+export async function setPassword(password: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw error;
+}
+
 export async function signOut(): Promise<void> {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;

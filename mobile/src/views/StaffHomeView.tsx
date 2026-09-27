@@ -34,14 +34,17 @@ export function StaffHomeView(props: Props) {
             <Label>{today}</Label>
             <H1>Good morning</H1>
           </View>
-          {scope.showPicker ? (
-            <Pressable onPress={scope.cycle} style={styles.pickerBtn}>
-              <Text style={styles.pickerText} numberOfLines={1}>
-                {scope.label}
-              </Text>
-              <Icon name="down" size={18} color={colors.mutedStrong} />
-            </Pressable>
-          ) : null}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {scope.showPicker ? (
+              <Pressable onPress={scope.cycle} style={styles.pickerBtn}>
+                <Text style={styles.pickerText} numberOfLines={1}>
+                  {scope.label}
+                </Text>
+                <Icon name="down" size={18} color={colors.mutedStrong} />
+              </Pressable>
+            ) : null}
+            <IconButton name="user" accessibilityLabel="Your profile" onPress={() => router.push('/profile')} />
+          </View>
         </View>
       </View>
       <ScreenBody onRefresh={refresh} refreshing={refreshing}>

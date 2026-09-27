@@ -28,6 +28,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       setStatus('signedOut');
       return;
     }
+    // A session just arrived (e.g. right after verifying an OTP), but the
+    // profile lookup below is async. Without this, `status` stays whatever
+    // it was a moment ago — usually 'signedOut' from before sign-in — and
+    // app/index.tsx redirects straight back to /sign-in before this finishes,
+    // stranding a signed-in user on the login screen. Showing a spinner
+    // ('loading') instead until the real answer is ready fixes that race.
+    setStatus('loading');
     const p = await getProfile(s.user.id);
     setProfile(p);
     if (p?.role === 'tenant') {

@@ -7,13 +7,32 @@ import { H1, Sub } from '@/src/components/Text';
 type Props = ReturnType<typeof import('@/src/controllers/useSignInController').useSignInController>;
 
 export function SignInView(props: Props) {
-  const { step, email, setEmail, code, setCode, loading, error, sendCode, verify, changeEmail } = props;
+  const {
+    step,
+    usePassword,
+    setUsePassword,
+    email,
+    setEmail,
+    code,
+    setCode,
+    password,
+    setPassword,
+    newPassword,
+    setNewPassword,
+    confirmPassword,
+    setConfirmPassword,
+    loading,
+    error,
+    sendCode,
+    signInWithPasswordNow,
+    verify,
+    savePasswordAndContinue,
+    skipPassword,
+    changeEmail,
+  } = props;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.content}>
         <View style={styles.mark}>
           <Text style={styles.markText}>MR</Text>
@@ -33,24 +52,51 @@ export function SignInView(props: Props) {
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
-              returnKeyType="send"
-              onSubmitEditing={sendCode}
+              returnKeyType={usePassword ? 'next' : 'send'}
+              onSubmitEditing={usePassword ? undefined : sendCode}
             />
+            {usePassword ? (
+              <Field
+                label="Password"
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Your password"
+                secureTextEntry
+                returnKeyType="go"
+                onSubmitEditing={signInWithPasswordNow}
+              />
+            ) : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
-            <Button onPress={sendCode} loading={loading}>
-              Send me a code
-            </Button>
+            {usePassword ? (
+              <Button onPress={signInWithPasswordNow} loading={loading}>
+                Sign in
+              </Button>
+            ) : (
+              <Button onPress={sendCode} loading={loading}>
+                Send me a code
+              </Button>
+            )}
+            <Pressable
+              onPress={() => {
+                setUsePassword(!usePassword);
+              }}
+              hitSlop={8}
+            >
+              <Sub style={styles.center}>
+                {usePassword ? 'Sign in with an emailed code instead' : 'Have a password? Sign in with it instead'}
+              </Sub>
+            </Pressable>
           </>
-        ) : (
+        ) : step === 'code' ? (
           <>
-            <Sub>We sent a 6-digit code to {email}.</Sub>
+            <Sub>We sent a sign-in code to {email}.</Sub>
             <Field
-              label="6-digit code"
+              label="Code from the email"
               value={code}
               onChangeText={setCode}
-              placeholder="······"
+              placeholder="Enter the code"
               keyboardType="number-pad"
-              maxLength={6}
+              maxLength={12}
               style={styles.codeInput}
               returnKeyType="go"
               onSubmitEditing={verify}
@@ -65,18 +111,50 @@ export function SignInView(props: Props) {
               </Pressable>
             </View>
           </>
+        ) : (
+          <>
+            <Sub>Set a password so you can skip the emailed code next time. You can always do this later from your profile.</Sub>
+            <Field
+              label="New password"
+              value={newPassword}
+              onChangeText={setNewPassword}
+              placeholder="At least 6 characters"
+              secureTextEntry
+              returnKeyType="next"
+            />
+            <Field
+              label="Confirm password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Type it again"
+              secureTextEntry
+              returnKeyType="go"
+              onSubmitEditing={savePasswordAndContinue}
+            />
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <View style={{ gap: 12 }}>
+              <Button onPress={savePasswordAndContinue} loading={loading}>
+                Save and continue
+              </Button>
+              <Pressable onPress={skipPassword} hitSlop={8}>
+                <Sub style={styles.center}>Skip for now</Sub>
+              </Pressable>
+            </View>
+          </>
         )}
       </View>
-      <Sub style={styles.footer}>
-        Looking for a house? Sign in with your email to see what’s available and apply.
-      </Sub>
+      {step === 'email' ? (
+        <Sub style={styles.footer}>
+          Looking for a house? Sign in with your email to see what’s available and apply.
+        </Sub>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper, justifyContent: 'space-between' },
-  content: { flexGrow: 1, justifyContent: 'center', gap: 28, paddingHorizontal: 28 },
+  content: { flexGrow: 1, justifyContent: 'center', gap: 20, paddingHorizontal: 28 },
   mark: {
     width: 64,
     height: 64,
@@ -88,7 +166,7 @@ const styles = StyleSheet.create({
   markText: { fontFamily: fonts.serif, fontSize: 28, color: '#FFFFFF' },
   title: { fontSize: 36, lineHeight: 40 },
   tagline: { fontSize: 16 },
-  codeInput: { textAlign: 'center', letterSpacing: 8, fontSize: 20 },
+  codeInput: { textAlign: 'center', letterSpacing: 4, fontSize: 20 },
   error: { fontFamily: fonts.sansMedium, fontSize: 13, color: colors.overdueFg },
   center: { textAlign: 'center' },
   footer: { textAlign: 'center', paddingHorizontal: 32, paddingBottom: spacing.xxl, fontSize: 13 },
