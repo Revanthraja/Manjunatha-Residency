@@ -1,0 +1,183 @@
+// Manjunatha Residency — database schema
+// Source of truth: supabase/migrations/*.sql (keep this file in sync)
+// View it: paste into https://dbdiagram.io
+
+Project manjunatha_residency {
+  database_type: 'PostgreSQL'
+  Note: 'Tenant moves in -> meter read -> monthly bill -> payments. All units are 1BHK.'
+}
+
+Enum user_role {
+  owner
+  manager
+  tenant
+}
+
+Enum application_status {
+  pending
+  approved
+  rejected
+}
+
+Enum payment_method {
+  cash
+  upi
+  bank_transfer
+  cheque
+}
+
+Enum maintenance_status {
+  open
+  in_progress
+  resolved
+}
+
+Table profiles {
+  id uuid [pk, note: 'same id as the Supabase auth user']
+  full_name text [not null]
+  phone text
+  role user_role [not null, default: 'tenant']
+  created_at timestamptz [not null, default: `now()`]
+  Note: 'One row per app login'
+}
+
+Table buildings {
+  id bigint [pk, increment]
+  name text [not null, unique]
+  address text [not null]
+  manager_id uuid [ref: > profiles.id]
+  electricity_rate numeric(6,2) [not null, default: 0, note: '₹ per unit']
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table units {
+  id bigint [pk, increment]
+  building_id bigint [not null, ref: > buildings.id]
+  unit_number text [not null, note: 'door number']
+  floor smallint [not null, default: 0, note: '0 = ground floor']
+  rent numeric(10,2) [not null, note: 'asking rent']
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (building_id, unit_number) [unique]
+  }
+}
+
+Table tenants {
+  id bigint [pk, increment]
+  profile_id uuid [unique, ref: - profiles.id, note: 'null until they have an app login']
+  full_name text [not null]
+  phone text [not null]
+  permanent_address text
+  id_proof_path text [note: 'ID proof scan in Supabase Storage']
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table applications {
+  id bigint [pk, increment]
+  unit_id bigint [not null, ref: > units.id]
+  profile_id uuid [not null, ref: > profiles.id]
+  full_name text [not null]
+  phone text [not null]
+  move_in_date date
+  message text
+  status application_status [not null, default: 'pending']
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table tenancies {
+  id bigint [pk, increment]
+  unit_id bigint [not null, ref: > units.id]
+  tenant_id bigint [not null, ref: > tenants.id]
+  rent numeric(10,2) [not null]
+  deposit numeric(10,2) [not null, default: 0]
+  start_date date [not null, note: 'move-in']
+  end_date date [note: 'move-out; null while living there']
+  deposit_refund numeric(10,2) [note: 'returned at move-out']
+  created_at timestamptz [not null, default: `now()`]
+  Note: 'Tenancies of the same unit can never overlap (exclusion constraint)'
+}
+
+Table meter_readings {
+  id bigint [pk, increment]
+  unit_id bigint [not null, ref: > units.id]
+  reading numeric(10,2) [not null]
+  reading_date date [not null, default: `current_date`]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (unit_id, reading_date) [unique]
+  }
+}
+
+Table bills {
+  id bigint [pk, increment]
+  tenancy_id bigint [not null, ref: > tenancies.id]
+  month date [not null, note: '1st of the month']
+  rent numeric(10,2) [not null]
+  electricity numeric(10,2) [not null, default: 0]
+  other numeric(10,2) [not null, default: 0]
+  note text [note: 'what "other" is for']
+  total numeric(10,2) [note: 'generated: rent + electricity + other']
+  due_date date [not null]
+  created_at timestamptz [not null, default: `now()`]
+
+  indexes {
+    (tenancy_id, month) [unique]
+  }
+}
+
+Table payments {
+  id bigint [pk, increment, note: 'also the receipt number']
+  bill_id bigint [not null, ref: > bills.id]
+  amount numeric(10,2) [not null]
+  method payment_method [not null]
+  paid_on date [not null, default: `current_date`]
+  reference text [note: 'UPI / cheque / bank ref']
+  received_by uuid [ref: > profiles.id, note: 'who collected it']
+  created_at timestamptz [not null, default: `now()`]
+}
+
+Table maintenance_requests {
+  id bigint [pk, increment]
+  unit_id bigint [not null, ref: > units.id]
+  raised_by uuid [ref: > profiles.id]
+  description text [not null]
+  photo_path text
+  status maintenance_status [not null, default: 'open']
+  created_at timestamptz [not null, default: `now()`]
+  resolved_at timestamptz
+}
+
+Table expenses {
+  id bigint [pk, increment]
+  building_id bigint [not null, ref: > buildings.id]
+  category text [not null, note: 'Repairs, Water, Salary, Tax, ...']
+  amount numeric(10,2) [not null]
+  spent_on date [not null, default: `current_date`]
+  note text
+  created_at timestamptz [not null, default: `now()`]
+}
+
+TableGroup property {
+  buildings
+  units
+  meter_readings
+}
+
+TableGroup people {
+  profiles
+  tenants
+  applications
+}
+
+TableGroup money {
+  tenancies
+  bills
+  payments
+}
+
+TableGroup operations {
+  maintenance_requests
+  expenses
+}

@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Manjunatha Residency",
+    "slug": "manjunatha-residency",
+    "scheme": "manjunatha-residency",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.manjunatharesidency.app"
+    },
+    "android": {
+      "package": "com.manjunatharesidency.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#F5F1EA",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Manjunatha Residency uses your photos to attach ID proofs and repair photos."
+        }
+      ]
+    ]
+  }
+}
